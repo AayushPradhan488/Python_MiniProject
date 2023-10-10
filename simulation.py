@@ -1,93 +1,130 @@
+#Code by Aayush Pradhan
+#N-Body Simulation
+
+#Importing necessary modules
+from time import sleep
 import tkinter as tk
 from itertools import combinations
-from turtle import bgcolor, right
-import pandas as pd
+from math import *
+#from PIL import ImageGrab
+#import win32gui
 
-filepath = 'Data.xlsx'
+#Defining Number of Bodies and radius of circular placement
+N_obj = 20
+radius = 40
 
-G=10
+print("Started!")
 
-data = pd.read_excel(filepath)
-#print(data.iloc[1][0])
+#Defining global parameters
+global root
+#capture_no=0
+k=250
+win=(50,50,450,450)
 
-class Body:
-    #x,y,m
-    arr = [];v=500
-    
-    def __init__(self,canvas,x,y,m,vx,vy):
+#func for finding distance between 2 bodies
+def dist(a,b):
+    rx = pow(a.x - b.x,2)
+    ry = pow(a.y - b.y,2)
+    if rx>0.5:
+        rx=(k)/rx
+    else:
+        rx=0
+    if ry>0.5:
+        ry=(k)/ry
+    else:
+        ry=0
+    return rx,ry
+
+#Gravitational force calculator
+def gravity():
+    global gravitylist
+    for i in gravitylist:
+        vx,vy=dist(i[0],i[1])
+        if pow(vx+vy,0.5) < 1:
+            if i[0].x-i[1].x >0:
+                i[0].vx+=-vx
+                i[1].vx+=vx
+            else:
+                i[0].vx+=vx
+                i[1].vx+=-vx
+            if i[0].y-i[1].y >0:
+                i[0].vy+=-vy
+                i[1].vy+=vy
+            else:
+                i[0].vy+=vy
+                i[1].vy+=-vy
+
+#func for placing N-bodies in circular array
+def circular_placement_of_objects(n,cx,cy,r,canvas):
+    global gravitylist,objlist,list_of_objects
+    theta=360/n
+    alpha=0
+    list_of_objects=[]
+    for i in range(n):
+        obj=Ball(canvas,cx+(r*cos(alpha+(i*theta))),cy+(r*(sin(alpha+(i*theta)))),0,0)
+        list_of_objects.append(obj)
+    gravitylist=list(combinations(list_of_objects,2))
+    objlist=list_of_objects.copy()
+
+#func for reducing number of bodies for optimizing calculation
+def destroy_object(i):
+    global list_of_objects,gravitylist,objlist
+    list_of_objects.remove(i)
+    objlist.remove(i)
+    gravitylist=list(combinations(list_of_objects,2))
+    print("Gravitylist=",len(gravitylist),"\tList Of Objects=",len(list_of_objects))
+
+#class defining bodies
+class Ball:
+    def __init__(self,canvas,x,y,vx,vy):
         self.x=x
         self.y=y
-        self.m=m
         self.vx=vx
         self.vy=vy
-        self.canvas = canvas
-        self.ball = canvas.create_oval(self.x-5, self.y-5, self.x+5, self.y+5, fill="red")
+        self.canvas=canvas
+        self.canvas_height = self.canvas.winfo_height()
+        self.canvas_width = self.canvas.winfo_width()
+        self.obj=canvas.create_oval(x-5,y-5,x+5,y+5,fill='black')
+        self.xinc=0
+        self.yinc=0
     
-    def display(arr):
-        for i in arr:
-            print("x=",i.x,"\ty=",i.y,"\tm=",i.m,"\tvx=",i.vx,"\tvy=",i.vy)
+    def movex(self,xinc):
+        self.canvas.move(self.obj,xinc,0)
+        self.x+=xinc
     
-    def getData(canvas):
-        for i in data.iterrows():
-            x1 = i[1][0]
-            y1 = i[1][1]
-            m1 = i[1][2]
-            vx1 = 0
-            vy1 = 0
-            newobj = Body(canvas,x1,y1,m1,vx1,vy1)
-            Body.arr.append(newobj)
-    
-    def distance(x,y):
-        return (x-y)**2
-    
-    def relate(self):
-        for i in self.arr:
-            rx=0 ; ry=0 ; ml=0 ; ax=0 ; ay=0
-            for j in self.arr:
-                if i!=j:
-                    rx += (i.x-j.x)**2
-                    ry += (i.y-j.y)**2
-                    ml += j.m
-                    print("Inin")
-            if rx!=0:
-                ax=(G*ml)/rx
-            if ry!=0:
-                ay=(G*ml)/ry
-            i.vx+=ax*self.v
-            i.vy+=ay*self.v
-            Body.move_ball(self,i.vx,i.vy)
-    
-    def move_ball(self,vx,vy):
-        self.canvas.move(self.ball, vx, vy)
-        self.canvas.after(50, self.move_ball)
+    def movey(self,yinc):
+        self.canvas.move(self.obj,0,yinc)
+        self.y+=yinc
+        
+root=tk.Tk()
+root.title("Moving balls")
+root.geometry('500x500')
+root.resizable(False, False)
 
-class Ball:
-    def __init__(self, canvas, x1, y1, x2, y2):
-        self.x1 = x1
-        self.y1 = y1
-        self.x2 = x2
-        self.y2 = y2
-        self.canvas = canvas
-        self.ball = canvas.create_oval(self.x1, self.y1, self.x2, self.y2, fill="red")
-    
-    def move_ball(self,vx,vy):
-        self.canvas.move(self.ball, vx, vy)
-        self.canvas.after(50, self.move_ball)
+canvas = tk.Canvas(root,bg='blue',width=500,height=500)
+canvas.pack()
 
-#print(x,'\n',y,'\n',m)
+canvas.create_line(win[0],0,win[0],500,fill='black')
+canvas.create_line(win[2],0,win[2],500,fill='black')
+canvas.create_line(0,win[1],500,win[1],fill='black')
+canvas.create_line(0,win[3],500,win[3],fill='black')
 
-def simFrame():
-    root = tk.Tk()
-    root.geometry('500x500')
-    canvas = tk.Canvas(root,width=500,height=500)
-    
-    Body.getData(canvas)
-    
-    while True:
-        Body.relate(Body)
+circular_placement_of_objects(N_obj,250,200,radius,canvas)
+root.update()
+sleep(2)
+print("Gravitylist=",len(gravitylist),"\tList Of Objects=",len(list_of_objects))
 
-#Body.getData()
-#Body.display(Body.arr)
-simFrame()
+b=True
+while b:
+    gravity()
+    for i in objlist:
+        i.movex(i.vx)
+        i.movey(i.vy)
+        sleep(0.0001)
+        if i.x>win[2]-i.vx or i.x<win[0]-i.vx or i.y>win[3]-i.vy or i.y<win[1]-i.vy:
+            destroy_object(i)
+    root.update()
+    if len(objlist)==0:
+        b=False
 
 print("Success!")
